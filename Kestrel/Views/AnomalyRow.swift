@@ -28,10 +28,11 @@ struct AnomalyRow: View {
                     }
                 }
                 Text(TempFormat.string(anomaly.currentTempC, fahrenheit: fahrenheit)
-                     + " · " + AnomalyPhrasing.rowQualifier(for: anomaly))
+                     + " · " + AnomalyPhrasing.rowQualifierShort(for: anomaly))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             Spacer(minLength: 6)

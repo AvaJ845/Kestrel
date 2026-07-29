@@ -33,6 +33,31 @@ enum AnomalyPhrasing {
         return "unusually \(dir) for this hour"
     }
 
+    /// Compact, non-truncating qualifier for the radar row.
+    static func rowQualifierShort(for a: Anomaly) -> String {
+        guard a.z != nil else { return "gathering history" }
+        guard a.tier != .normal else { return "within rhythm" }
+        return a.deltaC >= 0 ? "unusually warm" : "unusually cool"
+    }
+
+    /// The "so what?" — plain meaning + how notable this reading is. Lets a
+    /// user act with clear eyes instead of decoding a sigma value.
+    static func meaning(for a: Anomaly) -> String {
+        guard a.z != nil else {
+            return "Kestrel needs a little more history here before it can say how unusual this is."
+        }
+        switch a.tier {
+        case .normal:
+            return "Nothing to flag — \(a.station.city) is behaving about as expected for this time of day."
+        case .notable:
+            return "Worth a glance. This is outside \(a.station.city)'s usual range for this hour, though it does happen now and then."
+        case .high:
+            return "Clearly unusual. \(a.station.city) is well outside its normal range for this hour right now."
+        case .extreme:
+            return "Rare. \(a.station.city) is far outside anything typical for this hour in its recent history."
+        }
+    }
+
     private static func percentText(_ p: Double, warmer: Bool) -> String {
         // Express as "the top X%" flavour without over-precision.
         let pct = warmer ? p : (1 - p)

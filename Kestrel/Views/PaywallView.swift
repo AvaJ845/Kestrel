@@ -59,8 +59,8 @@ struct PaywallView: View {
         VStack(alignment: .leading, spacing: 14) {
             benefit("infinity", "Unlimited stations & alerts",
                     "Watch as many cities as you like and set a spike alert on each — the free tier stops at \(FreeTierLimits.maxStations) stations and \(FreeTierLimits.maxAlertsFree) alert.")
-            benefit("chart.line.uptrend.xyaxis", "A steadier baseline",
-                    "Pro scores against a \(FreeTierLimits.baselineDaysPro)-day same-hour history instead of \(FreeTierLimits.baselineDaysFree) — less noise, fairer anomalies.")
+            benefit("chart.line.uptrend.xyaxis", "Choose your baseline",
+                    "Free is a \(FreeTierLimits.baselineDaysFree)-day window. Pro lets you dial it up to 14 or \(FreeTierLimits.baselineDaysPro) days — steadier, less jumpy anomalies.")
             benefit("square.stack.3d.up", "Multi-model agreement",
                     "See how much independent weather models concur on each station — a confidence signal you can act on with clear eyes.")
             benefit("lock.shield", "Same honesty, always",

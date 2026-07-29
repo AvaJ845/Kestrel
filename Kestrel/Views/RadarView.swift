@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 /// The home surface: a hero summary + a ranked radar of watched stations,
 /// strongest anomaly first. Honest framing top and bottom.
@@ -6,6 +7,7 @@ struct RadarView: View {
     @Bindable var store: RadarStore
     @Bindable var entitlements: EntitlementStore
     @Bindable var iconManager: IconManager
+    @Environment(\.requestReview) private var requestReview
     @State private var showStations = false
     @State private var showAbout = false
     @State private var showSettings = false
@@ -43,6 +45,11 @@ struct RadarView: View {
         .task { await store.refresh() }
         .onChange(of: entitlements.isPro) { _, _ in
             Task { await store.refresh() }
+        }
+        .onChange(of: store.lastUpdated) { _, date in
+            // Happy-moment review ask: a working radar, a few times in, once per version.
+            guard date != nil, !store.anomalies.isEmpty, onboarded else { return }
+            if ReviewPrompt.registerSuccessAndShouldRequest() { requestReview() }
         }
         .fullScreenCover(isPresented: .init(get: { !onboarded }, set: { if !$0 { onboarded = true } })) {
             OnboardingView { onboarded = true }
@@ -91,7 +98,7 @@ struct RadarView: View {
                 HeroSummary(breaking: store.summary.breaking,
                             total: store.summary.total,
                             lastUpdated: store.lastUpdated,
-                            isPro: entitlements.isPro)
+                            baselineDays: store.effectiveBaselineDays)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowSeparator(.hidden)
             }
@@ -181,7 +188,7 @@ struct HeroSummary: View {
     let breaking: Int
     let total: Int
     let lastUpdated: Date?
-    let isPro: Bool
+    let baselineDays: Int
 
     private var headline: String {
         guard total > 0 else { return "No stations scored yet" }
@@ -199,8 +206,7 @@ struct HeroSummary: View {
             Text(AppText.tagline)
                 .font(.subheadline).foregroundStyle(.secondary)
             if let lastUpdated {
-                Text("Updated \(lastUpdated.formatted(date: .omitted, time: .shortened))"
-                     + (isPro ? " · 30-day baseline" : " · 7-day baseline"))
+                Text("Updated \(lastUpdated.formatted(date: .omitted, time: .shortened)) · \(baselineDays)-day baseline")
                     .font(.caption).foregroundStyle(.tertiary)
             }
         }

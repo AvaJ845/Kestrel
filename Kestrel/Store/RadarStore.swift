@@ -22,6 +22,21 @@ final class RadarStore {
         didSet { defaults.set(useFahrenheit, forKey: Keys.fahrenheit) }
     }
 
+    /// Pro-adjustable baseline window (days of same-hour history). Free users
+    /// are always 7; Pro can choose 7 / 14 / 30 for a steadier read.
+    var baselineDays: Int {
+        didSet {
+            let allowed = [7, 14, 30]
+            if !allowed.contains(baselineDays) { baselineDays = 7 }
+            defaults.set(baselineDays, forKey: Keys.baselineDays)
+        }
+    }
+
+    /// The window actually used given the current entitlement.
+    var effectiveBaselineDays: Int {
+        entitlements.isPro ? baselineDays : FreeTierLimits.baselineDaysFree
+    }
+
     private let service: WeatherService
     private let defaults: UserDefaults
     private let entitlements: EntitlementStore
@@ -31,6 +46,7 @@ final class RadarStore {
     private enum Keys {
         static let watched = "kestrel.watched"
         static let fahrenheit = "kestrel.useFahrenheit"
+        static let baselineDays = "kestrel.baselineDays"
     }
 
     init(service: WeatherService = WeatherService(),
@@ -45,6 +61,8 @@ final class RadarStore {
         self.defaults = defaults
         self.watched = defaults.stringArray(forKey: Keys.watched) ?? StationCatalog.defaultWatch
         self.useFahrenheit = defaults.bool(forKey: Keys.fahrenheit)
+        let storedDays = defaults.object(forKey: Keys.baselineDays) as? Int ?? FreeTierLimits.baselineDaysFree
+        self.baselineDays = [7, 14, 30].contains(storedDays) ? storedDays : FreeTierLimits.baselineDaysFree
     }
 
     var watchedStations: [Station] {
@@ -91,9 +109,7 @@ final class RadarStore {
         defer { isLoading = false }
 
         let stations = watchedStations
-        let pastDays = entitlements.isPro
-            ? FreeTierLimits.baselineDaysPro
-            : FreeTierLimits.baselineDaysFree
+        let pastDays = effectiveBaselineDays
         var results: [Anomaly] = []
         var failures = 0
 

@@ -11,6 +11,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 appearanceSection
+                baselineSection
                 alertsSection
                 subscriptionSection
                 aboutSection
@@ -56,6 +57,37 @@ struct SettingsView: View {
                     .accessibilityAddTraits(iconManager.current == icon ? [.isSelected] : [])
                 }
             }
+        }
+    }
+
+    // MARK: Baseline
+
+    private var baselineSection: some View {
+        Section {
+            if entitlements.isPro {
+                Picker("Baseline window", selection: $store.baselineDays) {
+                    Text("7 days").tag(7)
+                    Text("14 days").tag(14)
+                    Text("30 days").tag(30)
+                }
+                .onChange(of: store.baselineDays) { _, _ in
+                    Task { await store.refresh() }
+                }
+            } else {
+                HStack {
+                    Text("Baseline window")
+                    Spacer()
+                    Text("7 days").foregroundStyle(.secondary)
+                    Image(systemName: "lock.fill").font(.caption).foregroundStyle(.secondary)
+                }
+                Button { showPaywall = true } label: {
+                    Label("Extend to 14 or 30 days with Pro", systemImage: "sparkles")
+                }
+            }
+        } header: {
+            Text("Baseline")
+        } footer: {
+            Text("How much same-hour history each anomaly is measured against. A longer window is steadier and less jumpy; a shorter one reacts faster. Free uses 7 days.")
         }
     }
 

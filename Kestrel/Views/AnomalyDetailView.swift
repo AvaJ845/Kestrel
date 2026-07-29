@@ -76,6 +76,10 @@ struct AnomalyDetailView: View {
                 Text(AnomalyPhrasing.interpretation(for: anomaly, fahrenheit: fahrenheit))
                     .font(.body)
                     .multilineTextAlignment(.center)
+                    .foregroundStyle(.primary)
+                Text(AnomalyPhrasing.meaning(for: anomaly))
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
