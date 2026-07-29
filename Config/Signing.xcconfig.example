@@ -1,0 +1,3 @@
+// Copy this file to Signing.xcconfig (which is gitignored) and set your
+// paid Apple Developer Program team ID for device builds / archiving.
+// DEVELOPMENT_TEAM = XXXXXXXXXX

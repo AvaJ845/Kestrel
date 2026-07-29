@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kestrel — See where the weather is breaking its own rhythm</title>
+<meta name="description" content="Kestrel is an atmospheric-anomaly radar for your iPhone. It scores how far each city's weather has drifted from its recent rhythm — on-device, no account, no tracking. Research & education, never advice.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Kestrel — atmospheric-anomaly radar">
+<meta property="og:description" content="See where the weather is breaking its own rhythm. On-device, no account, no tracking. Research & education, never advice.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Kestrel — atmospheric-anomaly radar">
+<meta name="twitter:description" content="See where the weather is breaking its own rhythm. On-device, private. Research & education, never advice.">
+<style>
+  :root{
+    --bg:#f1f4f6; --panel:#ffffff; --ink:#0f1c25; --muted:#566672; --line:#dde5ea;
+    --accent:#ef7a3c; --accent2:#2a8fe6; --hero1:#10222e; --hero2:#1c3a30;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0a141b; --panel:#0f1f29; --ink:#e9eff4; --muted:#93a5b1; --line:#1d2f3a;
+      --accent:#ff9a5f; --accent2:#4aa6f0; --hero1:#08131a; --hero2:#0f2a22; }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.55}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+  a{color:var(--accent2);text-decoration:none}
+
+  .hero{background:linear-gradient(160deg,var(--hero1),var(--hero2));color:#fff;
+    padding:76px 0 66px;text-align:center}
+  .hero .wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
+  .glyph{width:96px;height:96px;border-radius:24px;display:grid;place-items:center;
+    background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);font-size:52px;
+    box-shadow:0 12px 30px rgba(0,0,0,.35)}
+  h1{font-size:clamp(34px,6vw,52px);margin:6px 0 0;letter-spacing:-.02em}
+  .tag{font-size:clamp(17px,2.6vw,22px);color:#e3eee9;max-width:24ch;margin:0}
+  .sub{color:#a7c2b7;max-width:54ch;margin:0;font-size:15px}
+  .pill{margin-top:10px;display:inline-flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+    color:#fff;padding:11px 20px;border-radius:999px;font-weight:600;font-size:15px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#ff9a5f;box-shadow:0 0 0 4px rgba(255,154,95,.25)}
+
+  section{padding:60px 0}
+  h2{font-size:clamp(24px,4vw,32px);letter-spacing:-.02em;margin:0 0 8px;text-align:center;text-wrap:balance}
+  .lead{color:var(--muted);text-align:center;max-width:62ch;margin:0 auto 34px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}
+  .card h3{margin:0 0 6px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:14.5px}
+  .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px;
+    background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);font-size:20px}
+
+  .how{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:30px;max-width:820px;margin:0 auto}
+  .steps{display:grid;gap:14px;margin:0;padding:0;list-style:none;counter-reset:s}
+  .steps li{position:relative;padding-left:44px;color:var(--muted)}
+  .steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-2px;
+    width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;
+    color:#fff;background:var(--accent)}
+  .steps strong{color:var(--ink)}
+
+  .pledge{background:var(--panel);border:1px solid var(--line);border-radius:22px;
+    padding:34px;text-align:center;max-width:780px;margin:0 auto}
+  .pledge strong{color:var(--accent)}
+
+  footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);
+    font-size:13.5px;text-align:center}
+  footer a{color:var(--muted);text-decoration:underline}
+  footer .links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="glyph">🦅</div>
+    <h1>Kestrel</h1>
+    <p class="tag">See where the weather is breaking its own rhythm.</p>
+    <p class="sub">An atmospheric-anomaly radar for your iPhone. Kestrel scores how far each city has drifted from its recent baseline — entirely on-device. No account. No tracking. Research &amp; education — never advice.</p>
+    <span class="pill"><span class="dot"></span>Coming soon to the App Store</span>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Not a forecast. A rhythm check.</h2>
+    <p class="lead">Weather apps tell you what’s coming. Kestrel does something different and honest: it measures how <em>unusual right now</em> is — a statistical anomaly score built from public data, with the math shown in plain sight.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="ic">📡</div>
+        <h3>Anomaly radar</h3>
+        <p>Every watched city, ranked by how far its current temperature has drifted from its recent rhythm.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🔬</div>
+        <h3>Cross-validated</h3>
+        <p>Each reading is checked against an independent sensor (aviation METAR) and scored for confidence.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🔒</div>
+        <h3>On-device &amp; private</h3>
+        <p>Runs entirely on your iPhone. No account, no tracking, no data collected.</p>
+      </div>
+      <div class="card">
+        <div class="ic">📖</div>
+        <h3>Explainable</h3>
+        <p>Tap any city to see the exact numbers — baseline, drift, z-score, confidence. No black boxes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="lead">The same statistical engine, ported to run on your device.</p>
+    <div class="how">
+      <ul class="steps">
+        <li><strong>Baseline.</strong> Kestrel seeds each station from its recent hourly readings, weighting the most recent hours most heavily.</li>
+        <li><strong>Score.</strong> It computes a time-decay weighted z-score of the current temperature against that baseline — how many standard deviations from normal.</li>
+        <li><strong>Cross-validate.</strong> An independent METAR sensor confirms the reading; disagreement lowers confidence.</li>
+        <li><strong>Rank.</strong> Cities sort by anomaly strength, so the most unusual conditions rise to the top.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="pledge">
+      <h2 style="margin-bottom:12px">The honesty pledge</h2>
+      <p style="color:var(--muted);margin:0">
+        Kestrel produces <strong>statistical anomaly scores</strong> from public weather data — not forecasts, not predictions, and <strong>not financial, trading, or betting advice</strong>. A high score means “unusual right now,” never “what happens next.” It has no connection to any market, exchange, or wager.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Use</a>
+    </div>
+    <div>© AvaResearch LLC · Kestrel · Atmospheric-anomaly research, not advice.</div>
+  </div>
+</footer>
+
+</body>
+</html>

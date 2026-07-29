@@ -1,0 +1,6 @@
+// Base build settings for Kestrel.
+// Signing (DEVELOPMENT_TEAM) is kept out of the repo — set it locally in
+// Config/Signing.xcconfig (gitignored; copy from Signing.xcconfig.example).
+#include? "Signing.xcconfig"
+
+CODE_SIGN_STYLE = Automatic

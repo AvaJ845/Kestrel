@@ -1,0 +1,72 @@
+# Kestrel — Release Checklist
+
+Everything to take Kestrel from "ready" to "live on the App Store." The app,
+tests, and legal pages are done — the rest is account/config work. Do the steps
+in order.
+
+**Key facts**
+- Bundle ID: `com.avaresearch.kestrel`
+- Price: **Free**, no IAP in v1 (no account, no data collected).
+- Signing: your **paid** Apple Developer Program team. Set it locally in
+  `Config/Signing.xcconfig` — gitignored; copy from `Config/Signing.xcconfig.example`.
+- Legal: `docs/` via GitHub Pages → `https://avaj845.github.io/Kestrel-iOS/{privacy,terms}.html`
+
+---
+
+## 0 · Accounts (runs on Apple/D&B's clock — start early)
+- [ ] **Apple Developer Program — Organization**, $99/yr (developer.apple.com/account).
+      *(You already have the AvaResearch LLC enrollment from Hummingbird — Kestrel ships under the same team.)*
+
+## 1 · Publish the legal pages (GitHub Pages)
+- [ ] Create the empty **Kestrel-iOS** repo under your account and push this project.
+- [ ] Settings → Pages → Source: `main` / `/docs`. Confirm these return HTTP 200 **before** submitting:
+  - `https://avaj845.github.io/Kestrel-iOS/privacy.html`
+  - `https://avaj845.github.io/Kestrel-iOS/terms.html`
+- [ ] ⚠️ Toggling the repo private↔public disables Pages — re-enable it before submission (the legal URLs are baked into `AppLegal.swift`).
+
+## 2 · Create the app record
+[App Store Connect](https://appstoreconnect.apple.com) → **Apps → +**
+- [ ] Platform iOS · Name **Weather Anomaly - Kestrel** · Bundle ID `com.avaresearch.kestrel` · SKU (any, e.g. `kestrel-001`)
+- [ ] **Subtitle:** `Track unusual heat & cold`
+- [ ] **Category:** Weather (primary), Education (secondary) · **Age:** 4+
+- [ ] Description / promo text / keywords → paste from `AppStore/METADATA.md`
+- [ ] **Privacy Policy URL:** `https://avaj845.github.io/Kestrel-iOS/privacy.html`
+- [ ] **App Privacy** ("nutrition label"): **Data Not Collected**
+- [ ] Upload screenshots (6.9") + the 1024 icon *(generate before submitting — see below)*
+
+## 3 · Assets still to generate
+- [ ] **App icon** (1024×1024, no alpha) — a kestrel / radar mark on the warm accent.
+- [ ] **Screenshots** (6.9", 1320×2868) — radar list, a station detail (explainability), the station picker, the About/honesty screen.
+
+## 4 · Build & upload (Release)
+- [ ] Confirm your team is in `Config/Signing.xcconfig` (gitignored).
+- [ ] Easiest: Xcode → select **Any iOS Device** → **Product ▸ Archive** → **Distribute App ▸ App Store Connect ▸ Upload**.
+- [ ] Or CLI:
+```bash
+cd ~/Documents/Kestrel
+xcodegen generate
+xcodebuild -project Kestrel.xcodeproj -scheme Kestrel \
+  -configuration Release -destination 'generic/platform=iOS' \
+  -archivePath build/Kestrel.xcarchive -allowProvisioningUpdates archive
+# then Xcode ▸ Organizer ▸ Distribute App
+```
+- [ ] Wait for the build to finish **processing** (~10–30 min).
+
+## 5 · Submit for review
+- [ ] Attach the processed build to the version.
+- [ ] **App Review notes:** paste the "Review notes" block from `AppStore/METADATA.md`
+      (research/education tool, not a forecast, no markets, no accounts, no real-money activity).
+- [ ] Submit (review ≈ 24–48h).
+
+---
+
+## Sanity checks (already true in the repo)
+- [x] 11/11 engine tests pass; math is locked to the Python engine with golden-value tests.
+- [x] "Not a forecast / not advice / no markets" framing on every surface (radar footer, detail, About, landing page, both legal pages).
+- [x] No account, no analytics, no tracking SDKs. ATS on (`NSAllowsArbitraryLoads = false`).
+- [x] Signing/team ID kept out of the repo (`Config/Signing.xcconfig` gitignored).
+
+## Optional after launch
+- [ ] Home Screen widget (top anomaly), Siri/App Intents, background refresh — the Hummingbird pattern ports directly.
+- [ ] Multi-model forecast **consensus** wired into the detail view (engine already supports it).
+- [ ] Optional Pro convenience tier (more stations / alerts) — same StoreKit 2 pattern as Hummingbird.
