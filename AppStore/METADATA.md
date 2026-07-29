@@ -31,6 +31,9 @@ Kestrel is an atmospheric-anomaly radar. It measures how far each city's current
 • Every reading is cross-validated against an independent aviation sensor (METAR); disagreement lowers the confidence score.
 • Tap any city to see the exact numbers: baseline, drift, z-score, and confidence. No black boxes.
 
+**Worldwide**
+• Watch cities across the US, Europe, Asia, the Middle East, Africa, and the Americas — from London and Paris to Tokyo, Dubai, Sydney, and São Paulo. Same on-device science, every continent.
+
 **Yours, and private**
 • Everything runs on your device. No account. No tracking. No data collected.
 • Choose the cities you want to watch; Kestrel only fetches weather for those.
