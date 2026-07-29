@@ -2,7 +2,8 @@ import Foundation
 import SwiftUI
 
 /// The result of scoring one station — how far its current temperature has
-/// drifted from its recent rhythm, with the confidence in that reading.
+/// drifted from its recent *same-hour* rhythm, with the uncertainty around
+/// that reading made explicit.
 struct Anomaly: Identifiable, Hashable {
     let station: Station
     let currentTempC: Double
@@ -10,8 +11,16 @@ struct Anomaly: Identifiable, Hashable {
     let forecastHighC: Double?
     let z: Double?
     let confidence: Int
-    let crossValidation: String   // "verified" | "unverified" | "divergent"
+    let crossValidation: String        // "verified" | "unverified" | "divergent"
     let updatedAt: Date
+
+    // Statistics / atmospheric-science layer
+    let percentile: Double?            // 0...1, empirical rank vs comparable hours
+    let bandLowC: Double?              // baseline mean − 1σ
+    let bandHighC: Double?             // baseline mean + 1σ
+    let comparableCount: Int           // size of the same-hour sample
+    let usedDiurnal: Bool              // true = same-hour baseline, false = raw fallback
+    let sparkline: [Double]            // recent hourly temps for the row viz
 
     var id: String { station.icao }
 
@@ -19,6 +28,7 @@ struct Anomaly: Identifiable, Hashable {
     var deltaC: Double { currentTempC - baselineMeanC }
 
     var tier: Tier { Tier(z: z) }
+    var isBreakingRhythm: Bool { tier >= .notable }
 
     enum Tier: Int, Comparable {
         case normal, notable, high, extreme
@@ -46,9 +56,9 @@ struct Anomaly: Identifiable, Hashable {
         var color: Color {
             switch self {
             case .normal: return .secondary
-            case .notable: return .yellow
-            case .high: return .orange
-            case .extreme: return .red
+            case .notable: return Color(red: 0.90, green: 0.62, blue: 0.10)
+            case .high: return Color(red: 0.95, green: 0.48, blue: 0.24)
+            case .extreme: return Color(red: 0.86, green: 0.24, blue: 0.24)
             }
         }
 

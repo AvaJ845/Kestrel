@@ -1,13 +1,15 @@
 import Foundation
 
 /// Everything Kestrel measures for one station, fetched from free,
-/// no-key public sources: Open-Meteo (current temp, recent hourly baseline,
-/// daily-high forecast) and aviation METAR (an independent sensor used only
-/// to cross-validate). No account, no key, no personal data leaves the device.
+/// no-key public sources: Open-Meteo (current temp, timestamped hourly
+/// history, daily-high forecast) and aviation METAR (an independent sensor
+/// used only to cross-validate). No account, no key, no personal data leaves
+/// the device.
 struct StationSnapshot: Sendable {
     let currentTempC: Double
-    /// Recent hourly readings, oldest → newest, for the anomaly baseline.
-    let baseline: [Double]
+    let currentTime: Date
+    /// Timestamped hourly readings, oldest → newest (UTC).
+    let hourly: [Reading]
     let forecastHighC: Double?
     /// Independent METAR sensor temp, if available.
     let metarTempC: Double?
@@ -34,14 +36,17 @@ actor WeatherService {
         self.session = session
     }
 
-    func snapshot(for station: Station) async throws -> StationSnapshot {
-        async let meteo = fetchOpenMeteo(station)
+    /// - Parameter pastDays: how many days of hourly history to pull for the
+    ///   baseline (7 free · 30 Pro — a steadier same-hour sample).
+    func snapshot(for station: Station, pastDays: Int = 7) async throws -> StationSnapshot {
+        async let meteo = fetchOpenMeteo(station, pastDays: pastDays)
         // METAR is best-effort: a cross-validation bonus, never a hard dependency.
         let metar = try? await fetchMetarTemp(icao: station.icao)
         let m = try await meteo
         return StationSnapshot(
             currentTempC: m.current,
-            baseline: m.baseline,
+            currentTime: m.currentTime,
+            hourly: m.hourly,
             forecastHighC: m.forecastHigh,
             metarTempC: metar,
             reportAgeMinutes: m.ageMinutes
@@ -52,7 +57,8 @@ actor WeatherService {
 
     private struct MeteoResult {
         let current: Double
-        let baseline: [Double]
+        let currentTime: Date
+        let hourly: [Reading]
         let forecastHigh: Double?
         let ageMinutes: Int?
     }
@@ -74,7 +80,7 @@ actor WeatherService {
         let daily: Daily
     }
 
-    private func fetchOpenMeteo(_ station: Station) async throws -> MeteoResult {
+    private func fetchOpenMeteo(_ station: Station, pastDays: Int) async throws -> MeteoResult {
         var comps = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
         comps.queryItems = [
             .init(name: "latitude", value: String(station.latitude)),
@@ -82,7 +88,7 @@ actor WeatherService {
             .init(name: "current", value: "temperature_2m"),
             .init(name: "hourly", value: "temperature_2m"),
             .init(name: "daily", value: "temperature_2m_max"),
-            .init(name: "past_days", value: "2"),
+            .init(name: "past_days", value: String(max(2, min(92, pastDays)))),
             .init(name: "forecast_days", value: "1"),
             .init(name: "timezone", value: "UTC"),
             .init(name: "temperature_unit", value: "celsius"),
@@ -100,46 +106,60 @@ actor WeatherService {
             throw WeatherError.decoding
         }
 
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withColonSeparatorInTime]
-
-        // Build the baseline from hourly readings up to and including "now",
-        // keeping only the most recent `historySize` values (oldest → newest).
         let now = Date()
-        var series: [Double] = []
+        let currentTime = parseHour(decoded.current.time) ?? now
+
+        // Build the timestamped hourly series, keeping readings up to "now".
+        var hourly: [Reading] = []
         for (idx, timeStr) in decoded.hourly.time.enumerated() {
             guard idx < decoded.hourly.temperature_2m.count,
                   let temp = decoded.hourly.temperature_2m[idx],
-                  let t = parseHour(timeStr, formatter: formatter),
-                  t <= now.addingTimeInterval(3600) else { continue }
-            series.append(temp)
+                  let t = parseHour(timeStr),
+                  t <= currentTime.addingTimeInterval(3600) else { continue }
+            hourly.append(Reading(temperatureC: temp, timestamp: t))
         }
-        let baseline = Array(series.suffix(EngineConfig.historySize))
 
-        // Freshness of the current reading.
-        let ageMinutes: Int?
-        if let currentTime = parseHour(decoded.current.time, formatter: formatter) {
-            ageMinutes = max(0, Int(now.timeIntervalSince(currentTime) / 60))
-        } else {
-            ageMinutes = nil
-        }
+        let ageMinutes = max(0, Int(now.timeIntervalSince(currentTime) / 60))
 
         return MeteoResult(
             current: decoded.current.temperature_2m,
-            baseline: baseline,
+            currentTime: currentTime,
+            hourly: hourly,
             forecastHigh: decoded.daily.temperature_2m_max.first ?? nil,
             ageMinutes: ageMinutes
         )
     }
 
     /// Open-Meteo returns "yyyy-MM-dd'T'HH:mm" (no seconds, no zone; UTC here).
-    private func parseHour(_ raw: String, formatter: ISO8601DateFormatter) -> Date? {
-        if let d = formatter.date(from: raw + ":00Z") { return d }
+    private func parseHour(_ raw: String) -> Date? {
         let df = DateFormatter()
         df.locale = Locale(identifier: "en_US_POSIX")
         df.timeZone = TimeZone(identifier: "UTC")
         df.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        if let d = df.date(from: raw) { return d }
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         return df.date(from: raw)
+    }
+
+    /// Today's daily-high forecast from a single named model — used by Pro's
+    /// multi-model agreement check. Best-effort; returns nil on any failure.
+    func dailyHigh(for station: Station, model: String) async -> Double? {
+        var comps = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
+        comps.queryItems = [
+            .init(name: "latitude", value: String(station.latitude)),
+            .init(name: "longitude", value: String(station.longitude)),
+            .init(name: "daily", value: "temperature_2m_max"),
+            .init(name: "forecast_days", value: "1"),
+            .init(name: "timezone", value: "UTC"),
+            .init(name: "temperature_unit", value: "celsius"),
+            .init(name: "models", value: model),
+        ]
+        guard let url = comps.url,
+              let (data, response) = try? await session.data(from: url),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        struct R: Decodable { struct D: Decodable { let temperature_2m_max: [Double?] }; let daily: D }
+        guard let decoded = try? JSONDecoder().decode(R.self, from: data) else { return nil }
+        return decoded.daily.temperature_2m_max.first ?? nil
     }
 
     // MARK: - METAR (cross-validation only)

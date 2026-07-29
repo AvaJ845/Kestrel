@@ -39,8 +39,9 @@ enum StationCatalog {
     ]
 
     /// Stations shown on first launch before the user customises their radar.
+    /// Sized to the free tier so a new user starts at, not over, the cap.
     static let defaultWatch: [String] = [
-        "KPHX", "KLAX", "KORD", "KJFK", "KMIA", "KDEN", "KSEA", "KDFW",
+        "KPHX", "KLAX", "KORD", "KJFK", "KMIA",
     ]
 
     static func station(icao: String) -> Station? {

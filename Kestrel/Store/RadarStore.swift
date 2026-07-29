@@ -2,8 +2,9 @@ import Foundation
 import Observation
 
 /// Orchestrates the radar: holds the user's watched stations, fetches each
-/// station's snapshot, scores it through `AnomalyEngine`, and publishes a
-/// ranked list. All state lives on the main actor; all work is on-device.
+/// station's snapshot, scores it through the diurnal + z-score engine, and
+/// publishes a ranked list. All state lives on the main actor; all work is
+/// on-device.
 @MainActor
 @Observable
 final class RadarStore {
@@ -12,24 +13,35 @@ final class RadarStore {
     var errorMessage: String?
     private(set) var lastUpdated: Date?
 
-    /// ICAOs the user is watching (persisted).
+    /// Non-nil when a gated action wants the paywall shown.
+    var paywallReason: String?
+
     private(set) var watched: [String]
 
-    /// Preferred temperature unit for display.
     var useFahrenheit: Bool {
         didSet { defaults.set(useFahrenheit, forKey: Keys.fahrenheit) }
     }
 
     private let service: WeatherService
     private let defaults: UserDefaults
+    private let entitlements: EntitlementStore
+    let alerts: AlertStore
+    let notifications: NotificationManager
 
     private enum Keys {
         static let watched = "kestrel.watched"
         static let fahrenheit = "kestrel.useFahrenheit"
     }
 
-    init(service: WeatherService = WeatherService(), defaults: UserDefaults = .standard) {
+    init(service: WeatherService = WeatherService(),
+         entitlements: EntitlementStore,
+         alerts: AlertStore,
+         notifications: NotificationManager,
+         defaults: UserDefaults = .standard) {
         self.service = service
+        self.entitlements = entitlements
+        self.alerts = alerts
+        self.notifications = notifications
         self.defaults = defaults
         self.watched = defaults.stringArray(forKey: Keys.watched) ?? StationCatalog.defaultWatch
         self.useFahrenheit = defaults.bool(forKey: Keys.fahrenheit)
@@ -39,16 +51,33 @@ final class RadarStore {
         watched.compactMap { StationCatalog.station(icao: $0) }
     }
 
+    var summary: (breaking: Int, total: Int) {
+        (anomalies.filter(\.isBreakingRhythm).count, anomalies.count)
+    }
+
+    var canAddMoreStations: Bool {
+        entitlements.isPro || watched.count < FreeTierLimits.maxStations
+    }
+
     func isWatching(_ icao: String) -> Bool { watched.contains(icao) }
 
-    func toggleWatch(_ icao: String) {
+    /// Returns false (and sets `paywallReason`) if a free user is at the cap.
+    @discardableResult
+    func toggleWatch(_ icao: String) -> Bool {
         if let idx = watched.firstIndex(of: icao) {
             watched.remove(at: idx)
             anomalies.removeAll { $0.station.icao == icao }
-        } else {
-            watched.append(icao)
+            defaults.set(watched, forKey: Keys.watched)
+            return true
         }
+        guard canAddMoreStations else {
+            // Caller decides how to surface this (avoids double-presenting a
+            // paywall from both the picker sheet and the radar screen).
+            return false
+        }
+        watched.append(icao)
         defaults.set(watched, forKey: Keys.watched)
+        return true
     }
 
     /// Fetch + score every watched station, concurrently.
@@ -62,13 +91,16 @@ final class RadarStore {
         defer { isLoading = false }
 
         let stations = watchedStations
+        let pastDays = entitlements.isPro
+            ? FreeTierLimits.baselineDaysPro
+            : FreeTierLimits.baselineDaysFree
         var results: [Anomaly] = []
         var failures = 0
 
         await withTaskGroup(of: Anomaly?.self) { group in
             for station in stations {
                 group.addTask { [service] in
-                    await Self.score(station: station, service: service)
+                    await Self.score(station: station, service: service, pastDays: pastDays)
                 }
             }
             for await result in group {
@@ -76,7 +108,6 @@ final class RadarStore {
             }
         }
 
-        // Rank: strongest anomaly first, then by confidence.
         results.sort { lhs, rhs in
             let l = abs(lhs.z ?? 0), r = abs(rhs.z ?? 0)
             if l != r { return l > r }
@@ -88,15 +119,41 @@ final class RadarStore {
         if results.isEmpty && failures > 0 {
             errorMessage = "Couldn't reach the weather service. Pull to try again."
         }
+
+        // Honest movement alerts: ping only alert-enabled stations that are
+        // currently past the user's chosen sensitivity (and off cooldown).
+        if alerts.enabledCount > 0 {
+            await notifications.evaluate(anomalies: results, alerts: alerts, fahrenheit: useFahrenheit)
+        }
+    }
+
+    /// Pro: how much independent weather models agree on today's high — a
+    /// data-quality/uncertainty signal, not a Kestrel forecast.
+    func loadConsensus(for station: Station) async -> AnomalyEngine.Consensus? {
+        async let gfs = service.dailyHigh(for: station, model: "gfs_seamless")
+        async let ecmwf = service.dailyHigh(for: station, model: "ecmwf_ifs04")
+        async let icon = service.dailyHigh(for: station, model: "icon_seamless")
+        let models: [String: Double?] = ["GFS": await gfs, "ECMWF": await ecmwf, "ICON": await icon]
+        return AnomalyEngine.consensus(models: models)
     }
 
     /// Pure scoring pipeline for one station (runs off the main actor).
     nonisolated private static func score(station: Station,
-                                          service: WeatherService) async -> Anomaly? {
-        guard let snap = try? await service.snapshot(for: station) else { return nil }
+                                          service: WeatherService,
+                                          pastDays: Int) async -> Anomaly? {
+        guard let snap = try? await service.snapshot(for: station, pastDays: pastDays) else { return nil }
         guard AnomalyEngine.validate(temperatureC: snap.currentTempC).isValid else { return nil }
 
-        let zResult = AnomalyEngine.zScore(readings: snap.baseline, current: snap.currentTempC)
+        // Diurnal (same-hour) baseline is the honest signal; fall back to the
+        // most recent raw hourly readings only when we lack comparable hours.
+        let diurnal = DiurnalAnalysis.sameHourBaseline(history: snap.hourly, now: snap.currentTime)
+        let usedDiurnal = diurnal.count >= 3
+        let baseline = usedDiurnal
+            ? diurnal
+            : Array(snap.hourly.suffix(EngineConfig.historySize).map(\.temperatureC))
+
+        let zResult = AnomalyEngine.zScore(readings: baseline, current: snap.currentTempC)
+        let pct = DiurnalAnalysis.percentile(of: snap.currentTempC, in: baseline)
         let cross = AnomalyEngine.crossValidate(primaryC: snap.currentTempC,
                                                 secondaryC: snap.metarTempC)
         let deltaC: Double = {
@@ -111,15 +168,25 @@ final class RadarStore {
             consensus: nil
         )
 
+        let mean = zResult?.weightedMean ?? snap.currentTempC
+        let sd = zResult?.weightedStdDev ?? 0
+        let sparkline = Array(snap.hourly.suffix(48).map(\.temperatureC))
+
         return Anomaly(
             station: station,
             currentTempC: snap.currentTempC,
-            baselineMeanC: zResult?.weightedMean ?? snap.currentTempC,
+            baselineMeanC: mean,
             forecastHighC: snap.forecastHighC,
             z: zResult?.z,
             confidence: conf.composite,
             crossValidation: cross.label,
-            updatedAt: Date()
+            updatedAt: Date(),
+            percentile: pct,
+            bandLowC: sd > 0 ? mean - sd : nil,
+            bandHighC: sd > 0 ? mean + sd : nil,
+            comparableCount: baseline.count,
+            usedDiurnal: usedDiurnal,
+            sparkline: sparkline
         )
     }
 }

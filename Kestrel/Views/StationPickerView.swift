@@ -1,10 +1,13 @@
 import SwiftUI
 
 /// Choose which stations Kestrel watches. Only watched stations are polled.
+/// Free users are capped; hitting the cap opens the paywall.
 struct StationPickerView: View {
     @Bindable var store: RadarStore
+    @Bindable var entitlements: EntitlementStore
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
+    @State private var showPaywall = false
 
     private var filtered: [Station] {
         guard !query.isEmpty else { return StationCatalog.all }
@@ -17,21 +20,28 @@ struct StationPickerView: View {
     var body: some View {
         NavigationStack {
             List {
+                if !entitlements.isPro {
+                    Section {
+                        HStack {
+                            Label("\(store.watched.count) of \(FreeTierLimits.maxStations) stations",
+                                  systemImage: "dot.radiowaves.left.and.right")
+                            Spacer()
+                            Button("Get Pro") { showPaywall = true }
+                                .font(.caption.weight(.bold))
+                        }
+                    }
+                }
                 Section {
                     ForEach(filtered) { station in
-                        Button { store.toggleWatch(station.icao) } label: {
+                        Button { toggle(station) } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(station.city)
-                                        .foregroundStyle(.primary)
-                                    Text(station.icao)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    Text(station.city).foregroundStyle(.primary)
+                                    Text(station.icao).font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 if store.isWatching(station.icao) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.tint)
+                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
                                 }
                             }
                         }
@@ -53,6 +63,18 @@ struct StationPickerView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(entitlements: entitlements, reason: gateReason)
+            }
         }
+    }
+
+    private var gateReason: String {
+        "Free watches up to \(FreeTierLimits.maxStations) stations. Kestrel Pro removes the limit."
+    }
+
+    private func toggle(_ station: Station) {
+        let ok = store.toggleWatch(station.icao)
+        if !ok { showPaywall = true }
     }
 }

@@ -8,8 +8,10 @@
 - **Bundle ID:** com.avaresearch.kestrel
 - **Primary category:** Weather  ·  **Secondary:** Education
 - **Age rating:** 4+ (no objectionable content)
-- **Price:** Free. (No account, no IAP in v1. Optional Pro convenience tier is a
-  possible later addition — not needed to ship.)
+- **Price:** Free. Optional **Kestrel Pro** auto-renewable subscription —
+  **$2.99/month** or **$14.99/year** (7-day free trial on the annual; annual
+  saves ~58%). Group `Kestrel Pro`. Pro unlocks unlimited stations and a
+  steadier 30-day baseline — breadth, never certainty.
 
 ## Promotional text (≤170)
 See where the weather is breaking its own rhythm. Kestrel scores how unusual each city is right now — on-device, private. Research & education, never advice.
@@ -39,9 +41,9 @@ Kestrel is for learning and exploration only and is **not a forecast** and **not
 First release: an on-device atmospheric-anomaly radar. Rank cities by how far they've drifted from their recent rhythm, cross-validated against an independent sensor, with the full math shown for every station — research & education, never advice.
 
 ## URLs
-- **Support / Marketing:** https://avaj845.github.io/Kestrel-iOS/
-- **Privacy Policy:** https://avaj845.github.io/Kestrel-iOS/privacy.html
-- **Terms of Use (EULA):** https://avaj845.github.io/Kestrel-iOS/terms.html (or Apple standard EULA)
+- **Support / Marketing:** https://avaj845.github.io/Kestrel/
+- **Privacy Policy:** https://avaj845.github.io/Kestrel/privacy.html
+- **Terms of Use (EULA):** https://avaj845.github.io/Kestrel/terms.html (or Apple standard EULA)
 
 ## App Privacy (nutrition label)
 - **Data collected:** None. No account, no analytics/tracking SDKs.

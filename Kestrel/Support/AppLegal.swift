@@ -18,9 +18,9 @@ enum AppText {
 }
 
 enum AppLegal {
-    static let privacyURL = URL(string: "https://avaj845.github.io/Kestrel-iOS/privacy.html")!
-    static let termsURL = URL(string: "https://avaj845.github.io/Kestrel-iOS/terms.html")!
-    static let siteURL = URL(string: "https://avaj845.github.io/Kestrel-iOS/")!
+    static let privacyURL = URL(string: "https://avaj845.github.io/Kestrel/privacy.html")!
+    static let termsURL = URL(string: "https://avaj845.github.io/Kestrel/terms.html")!
+    static let siteURL = URL(string: "https://avaj845.github.io/Kestrel/")!
 }
 
 /// Temperature display formatting (°C ↔ °F).
