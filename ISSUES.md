@@ -14,7 +14,7 @@ Status of the complete-build pass. P0 = ship blocker, P1 = value/experience, P2 
 - [x] **Worldwide stations** — catalog extended beyond the US to Europe, Asia, Middle East, Africa, and the Americas (~55 cities). Global default watchlist (New York, London, Tokyo, Dubai, Sydney). Verified live on-device (Sydney correctly "within rhythm" at 8°C winter). Engine was already global (Open-Meteo + international METAR).
 
 ## Screenshots (App Store)
-- [~] **Automated headless capture** of the detail/Settings screens hit a `simctl` limitation (launch args + `SIMCTL_CHILD_` env not reaching the app reliably on this host). Radar hero captured. Reliable paths: drive `screenshotRoot` from an Xcode scheme env var (`KESTREL_SHOT=detail|settings|about`, `KESTREL_PRO=1`), or tap through once the native simulator tool is unlocked (`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`).
+- [ ] **Pending.** Radar hero verified on-device. Capture the remaining frames (detail, settings, alerts, honesty) by tapping through in the Simulator — unlock the native tool with `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`. (An experimental headless capture hook was removed to keep the app target clean.)
 
 ## P2 — polish
 - [x] **Row text truncation** ("unusually war…") — shortened the row qualifier so it never clips.

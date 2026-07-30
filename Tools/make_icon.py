@@ -137,7 +137,5 @@ if __name__ == "__main__":
     imgs["Classic"].save("AppStore/AppIcon-1024.png")
     print("wrote AppStore/AppIcon-1024.png")
     os.makedirs("docs/img", exist_ok=True)
-    for name in imgs:
-        rounded_preview(imgs[name]).save(f"docs/img/icon-{name.lower()}.png")
     rounded_preview(imgs["Classic"]).save("docs/img/icon.png")
-    print("wrote docs/img previews")
+    print("wrote docs/img/icon.png (rounded preview for the landing page)")
